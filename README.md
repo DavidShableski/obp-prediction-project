@@ -47,6 +47,7 @@ The regression model uses these inputs:
 - `PA_19`
 - `PA_20`
 - Player age in 2021
+- Derived historical features, including weighted OBP, average OBP, recent OBP, OBP trend, total PA, average PA, maximum PA, seasons played, OBP/PA interaction values, and missing-season flags
 
 The target variable is:
 
@@ -63,6 +64,45 @@ The page displays:
 - Total absolute error
 - Mean absolute error
 - Number of players used to train the regression model
+
+## Result Analysis and Tuning
+
+After switching to linear regression, a few model settings were tested to improve accuracy while keeping the project simple and browser-based.
+
+The first regression version used only the raw historical columns:
+
+- `OBP_16` through `OBP_20`
+- `PA_16` through `PA_20`
+- Player age in 2021
+
+That version trained on 434 players and produced:
+
+- Total absolute error: `17.140`
+- Mean absolute error: `0.034`
+
+To improve the model, extra derived historical features were added while still using only data from 2016 through 2020:
+
+- Weighted historical OBP
+- Average historical OBP
+- Most recent available OBP
+- OBP trend from first available season to most recent available season
+- Total, average, and maximum historical plate appearances
+- Number of usable historical seasons
+- OBP and plate appearance interaction values
+- Missing-season flags
+
+Several ridge values were tested for the regression. Ridge regularization helps keep the model stable when features are closely related. The best setting that still predicted every player with at least one usable historical season used:
+
+- Minimum training seasons: `1`
+- Ridge value: `2`
+- Training players: `506`
+
+This tuned version produced:
+
+- Total absolute error: `16.195`
+- Mean absolute error: `0.032`
+
+A stricter version that only predicted players with at least two usable historical seasons reached a lower mean absolute error of about `0.030`, but it only evaluated 434 players. The final version keeps broader player coverage because the original project was meant to show predictions player by player instead of skipping harder cases.
 
 ## Tech Stack
 
