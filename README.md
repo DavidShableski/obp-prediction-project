@@ -1,70 +1,85 @@
 # MLB On-Base Percentage Projection Tool
 
-## Project Summary
+## Project Objective
 
-This project is a browser-based analytical tool for estimating MLB player on-base percentage (OBP) for the 2021 season using historical OBP and plate appearance data from 2016 through 2020. The tool parses a local CSV file, calculates a weighted historical projection for each player, compares the estimate with actual 2021 OBP, and displays the total absolute error across the dataset.
+This project is a small browser-based sports analytics tool that predicts MLB players' 2021 on-base percentage (OBP) using player data from the 2016 through 2020 seasons. It loads a local CSV file in the browser, trains a linear regression model in JavaScript, compares each prediction with the actual 2021 OBP, and displays the prediction error.
 
-## Project Overview / Problem Statement
+The goal is to keep the project simple and readable while expanding the original weighted-average projection into a basic statistical model.
 
-The project addresses a practical sports analytics problem: using player performance records from the 2016-2020 MLB seasons to form a transparent projection for a 2021 season outcome. Rather than using a black-box model, the implementation uses a rules-based weighted average so the calculation can be inspected directly in the JavaScript source.
+## Data Used
 
-The projection gives more influence to more recent seasons and to seasons with more plate appearances. It also applies a simple age adjustment for players older than 30. The output is intended to make the prediction logic and resulting error visible for each player in the dataset.
+The project uses [`obp.csv`](obp.csv), which includes player-level OBP and plate appearance data. Important columns include:
 
-## Dataset / Inputs Used
+- Player information: `Name`, `playerid`, `birth_date`
+- Historical OBP features: `OBP_16`, `OBP_17`, `OBP_18`, `OBP_19`, `OBP_20`
+- Historical plate appearance features: `PA_16`, `PA_17`, `PA_18`, `PA_19`, `PA_20`
+- Target value: `OBP_21`
 
-The primary input is [`obp.csv`](obp.csv), a local CSV file containing 572 player records. The columns include:
+The script also calculates each player's age for 2021 from `birth_date`.
 
-- Player identifiers: `Name`, `playerid`, `birth_date`
-- Actual 2021 values: `PA_21`, `OBP_21`
-- Historical inputs: `PA_20`, `OBP_20`, `PA_19`, `OBP_19`, `PA_18`, `OBP_18`, `PA_17`, `OBP_17`, `PA_16`, `OBP_16`
+## Methodology
 
-The repository does not document the original source of the CSV data, so the README does not make a claim about data provenance.
-
-## Methodology / Approach
-
-The calculation is implemented in [`script.js`](script.js):
+The main logic is in [`script.js`](script.js):
 
 1. The browser fetches `obp.csv`.
-2. PapaParse parses the CSV with the first row treated as headers.
-3. For each player, the script reads OBP and plate appearance values from 2016 through 2020.
-4. Each season receives a recency multiplier:
-   - 2016: `PA * 1`
-   - 2017: `PA * 2`
-   - 2018: `PA * 3`
-   - 2019: `PA * 4`
-   - 2020: `PA * 5`
-5. Seasons with missing or zero OBP are assigned zero weight.
-6. The projected 2021 OBP is calculated as a weighted average of historical OBP values.
-7. Players older than 30, based on `birth_date`, receive a 5% reduction to the projected OBP.
-8. The script compares projected 2021 OBP with actual `OBP_21` and adds the absolute error to a total error value.
+2. PapaParse reads the CSV and converts it into JavaScript objects.
+3. The script builds training rows from players with a valid `OBP_21`, a valid birth date, and at least two seasons of usable historical OBP and plate appearance data.
+4. Missing historical feature values are filled with the average value from the training data.
+5. Features are standardized so OBP, plate appearances, and age can be used together more safely.
+6. A multiple linear regression model is trained directly in JavaScript using the normal equation.
+7. The trained model predicts each player's 2021 OBP.
+8. Predictions are compared with actual `OBP_21` values.
 
-This is a heuristic projection method, not a trained machine learning model.
+No external machine learning framework is used. The small amount of matrix math needed for regression is implemented directly in plain JavaScript.
 
-## Key Features
+## Features Used by the Model
 
-- Parses local baseball performance data directly in the browser.
-- Uses plate appearances and recency to weight historical OBP values.
-- Handles missing historical OBP values by excluding those seasons from the weighted calculation.
-- Applies a simple age-based adjustment for players older than 30.
-- Displays each player's projected 2021 OBP alongside actual 2021 OBP.
-- Calculates and displays the total absolute error across all parsed player records with valid projections.
+The regression model uses these inputs:
+
+- `OBP_16`
+- `OBP_17`
+- `OBP_18`
+- `OBP_19`
+- `OBP_20`
+- `PA_16`
+- `PA_17`
+- `PA_18`
+- `PA_19`
+- `PA_20`
+- Player age in 2021
+
+The target variable is:
+
+- `OBP_21`
+
+## Results Shown
+
+The page displays:
+
+- Player name
+- Predicted 2021 OBP
+- Actual 2021 OBP
+- Absolute error for each player
+- Total absolute error
+- Mean absolute error
+- Number of players used to train the regression model
 
 ## Tech Stack
 
-- HTML for the browser page structure.
-- JavaScript for data loading, projection logic, DOM updates, and error calculation.
-- PapaParse 5.3.0, loaded from a CDN, for CSV parsing.
-- CSV as the local data input format.
+- HTML
+- JavaScript
+- PapaParse 5.3.0 from a CDN
+- CSV data
 
 ## Repository Structure
 
 ```text
 .
 |-- index.htm    # Browser entry point and PapaParse CDN import
-|-- script.js    # CSV parsing, OBP projection logic, and display updates
+|-- script.js    # CSV parsing, linear regression model, and display updates
 |-- obp.csv      # Player-level OBP and plate appearance data
 |-- README.md    # Project documentation
-`-- README.pdf   # PDF version of prior project documentation
+`-- README.pdf   # PDF version of prior project documentation, if present
 ```
 
 ## How to Run the Project
@@ -83,22 +98,12 @@ Then open:
 http://localhost:8000/index.htm
 ```
 
-The page will load `obp.csv`, calculate the projections, and display the total absolute error and player-level results.
+The page will load the CSV, train the regression model, and display the predictions and error metrics.
 
-## Notes / Limitations
+## Notes and Limitations
 
-- The projection is based on a hand-coded weighted average, not a fitted statistical or machine learning model.
-- The age adjustment is a fixed 5% reduction for players older than 30 and is not estimated from the dataset.
-- The repository does not include tests, package configuration, or a build process.
-- The data source for `obp.csv` is not documented in the repository.
-- The interface is minimal and focused on displaying calculation output rather than interactive analysis.
-- Some inline comments in `script.js` refer to batting average, but the implemented calculation uses OBP columns.
-
-## Future Improvements
-
-- Document the source and collection process for the CSV data.
-- Add validation for missing or malformed numeric fields before calculating projections.
-- Report additional error metrics, such as mean absolute error, to make model evaluation easier to interpret.
-- Separate calculation logic from DOM rendering so the projection method can be tested independently.
-- Add tests for the weighting, missing-data handling, age adjustment, and error calculation.
-- Improve the results display with sorting, filtering, and clearer formatting for player-level comparisons.
+- The model is trained and evaluated on the same dataset, so the displayed errors are useful for comparison but are not a true out-of-sample test.
+- Missing values are handled with simple mean imputation from the training data.
+- The regression is intentionally simple so the math can be read directly in the source code.
+- The repository does not document the original source of the CSV data.
+- The interface is minimal and focused on showing the model output clearly.

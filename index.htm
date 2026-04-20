@@ -7,17 +7,56 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>David Shableski's Player OBP Predictions for 2021</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.5;
+            margin: 24px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th,
+        td {
+            border: 1px solid #cccccc;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #eeeeee;
+        }
+    </style>
     <!-- PapaParse library for CSV parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <!--https://stackoverflow.com/questions/49752889/how-can-i-read-a-local-file-with-papa-parse-->
 </head>
 <body>
     <h1>David Shableski's Player OBP Predictions for 2021</h1>
-<P>Total Error Sum:</P>
+    <p id="modelInfo">Loading model...</p>
+
+    <p>Total Absolute Error:</p>
     <div id="totalError"></div>
+
+    <p>Mean Absolute Error:</p>
+    <div id="meanError"></div>
+
     <!--section to display the parsed predictions-->
     <h2>Parsed Player Data:</h2>
-    <ul id="predictions"></ul>
+    <table>
+        <thead>
+            <tr>
+                <th>Player</th>
+                <th>Predicted 2021 OBP</th>
+                <th>Actual 2021 OBP</th>
+                <th>Absolute Error</th>
+            </tr>
+        </thead>
+        <tbody id="predictions"></tbody>
+    </table>
 
     <!--link to your external JavaScript file-->
     <script src="script.js"></script>

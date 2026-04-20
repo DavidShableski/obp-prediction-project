@@ -1,149 +1,43 @@
 document.addEventListener("DOMContentLoaded", function () {
+  // David Shableski
+  // dbshableski@gmail.com
+  // Updated regression version
+  //
+  // This project uses OBP and plate appearances from 2016-2020, plus the
+  // player's age in 2021, to train a simple linear regression model that
+  // predicts OBP for the 2021 season.
 
-  //David Shableski
-  //dbshableski@gmail.com
-  //10-17-2024
-  //This code uses batting averages and plate apperances from 2016-2020, as well as the age of the player to try to predict
-  //the batting average for the 2021 season.
+  var predictionsTableBody = document.getElementById("predictions");
+  var totalErrorDiv = document.getElementById("totalError");
+  var meanErrorDiv = document.getElementById("meanError");
+  var modelInfoDiv = document.getElementById("modelInfo");
 
-  var predictionsList = document.getElementById("predictions"); // List to display player data
-  var totalErrorDiv = document.getElementById("totalError"); // Div to display the total absolute error
+  var featureColumns = [
+    "OBP_16",
+    "OBP_17",
+    "OBP_18",
+    "OBP_19",
+    "OBP_20",
+    "PA_16",
+    "PA_17",
+    "PA_18",
+    "PA_19",
+    "PA_20",
+    "age_2021",
+  ];
 
-  //fetch the CSV file
-  //https://stackoverflow.com/questions/22331886/read-csv-headers-using-javascript
   fetch("obp.csv")
     .then(function (response) {
-      return response.text(); //parse it as text
+      return response.text();
     })
     .then(function (csvText) {
-      //parse the csv using PapaParse
-      //https://stackoverflow.com/questions/49752889/how-can-i-read-a-local-file-with-papa-parse
       Papa.parse(csvText, {
-        header: true, //use the first row as header
+        header: true,
+        skipEmptyLines: true,
         complete: function (results) {
           var players = results.data;
-
-          //clear list before adding new data
-          predictionsList.innerHTML = "";
-          totalAbsoluteError = 0;
-          //loop through parsed data and calculate predicted OBP for 2021
-          for (var i = 0; i < players.length; i++) {
-            var player = players[i];
-            var li = document.createElement("li");
-            var name = player["Name"];
-
-            //get OBPs from previous years, convert them to numbers, set default to 0 if missing
-            var obp2016 = parseFloat(player["OBP_16"]) || 0;
-            var obp2017 = parseFloat(player["OBP_17"]) || 0;
-            var obp2018 = parseFloat(player["OBP_18"]) || 0;
-            var obp2019 = parseFloat(player["OBP_19"]) || 0;
-            var obp2020 = parseFloat(player["OBP_20"]) || 0;
-
-            var pa2016 = parseFloat(player["PA_16"]) || 0;
-            var pa2017 = parseFloat(player["PA_17"]) || 0;
-            var pa2018 = parseFloat(player["PA_18"]) || 0;
-            var pa2019 = parseFloat(player["PA_19"]) || 0;
-            var pa2020 = parseFloat(player["PA_20"]) || 0;
-
-            //total plate appearances
-            //var totalPA = pa2016 + pa2017 + pa2018 + pa2019 + pa2020;
-
-            //assign weights 
-            //more emphasis on recent years and years with more PAs
-            var weights2016 = pa2016 * 1;
-            var weights2017 = pa2017 * 2;
-            var weights2018 = pa2018 * 3;
-            var weights2019 = pa2019 * 4;
-            var weights2020 = pa2020 * 5;
-
-            /*increased error
-            var weights2016 = (pa2016 / totalPA) * 1;
-            var weights2017 = (pa2017 / totalPA) * 2;
-            var weights2018 = (pa2018 / totalPA) * 3;
-            var weights2019 = (pa2019 / totalPA) * 4;
-            var weights2020 = (pa2020 / totalPA) * 5;
-*/
-
-            //set weights to zero if missing data
-            if (obp2016 == 0) {
-              weights2016 = 0;
-            }
-            if (obp2017 == 0) {
-              weights2017 = 0;
-            }
-            if (obp2018 == 0) {
-              weights2018 = 0;
-            }
-            if (obp2019 == 0) {
-              weights2019 = 0;
-            }
-            if (obp2020 == 0) {
-              weights2020 = 0;
-            }
-
-            //calculate OBP
-            var weightedSum =
-              obp2016 * weights2016 +
-              obp2017 * weights2017 +
-              obp2018 * weights2018 +
-              obp2019 * weights2019 +
-              obp2020 * weights2020;
-
-            var totalWeight =
-              weights2016 +
-              weights2017 +
-              weights2018 +
-              weights2019 +
-              weights2020;
-
-            //calculate the predicted OBP for 2021
-            var predictedOBP2021;
-            if (totalWeight > 0) {
-              predictedOBP2021 = (weightedSum / totalWeight).toFixed(3); // round to 3 decimal places
-            } else {
-              predictedOBP2021 = "N/A"; //if no valid data
-            }
-
-            //get the actucal OBP for 2021
-            var obp2021 = parseFloat(player["OBP_21"]);
-
-            //https://www.w3schools.com/jsref/jsref_getfullyear.asp
-            var birthDate = new Date(player["birth_date"]);
-            var playerAge = 2021 - birthDate.getFullYear(); // Calculate player age
-
-            //apply an age factor to reduce OBP slightly for older players (> 30)
-            if (playerAge > 30 && predictedOBP2021 !== "N/A") {
-              predictedOBP2021 *= 0.95; // 5% reduction if over 30
-              predictedOBP2021 = parseFloat(predictedOBP2021).toFixed(3);
-            }
-            /* apply an age factor to increase OBP slightly for younger players
-            //icreased error
-            if (playerAge < 23 && predictedOBP2021 !== "N/A") {
-              predictedOBP2021 *= 1.05; // 5% increase if under 23
-              predictedOBP2021 = parseFloat(predictedOBP2021).toFixed(3);
-            }
-*/
-
-            if (predictedOBP2021 !== "N/A") {
-              var error = Math.abs(predictedOBP2021 - obp2021);
-              totalAbsoluteError += error; //add to total error
-              var star = "";
-              if (error == 0) { //if prediction is 100% put star next to their name
-                star = " *"
-              }
-
-
-            }
-            //display the player's name and predicted OBP for 2021
-            li.textContent =
-              name +
-              ": Predicted OBP for 2021: " +
-              predictedOBP2021 +
-              " | Actual OBP for 2021: " +
-              obp2021.toFixed(3) + star;
-            predictionsList.appendChild(li);
-          }
-          totalErrorDiv.textContent = totalAbsoluteError.toFixed(3);
+          var model = trainLinearRegression(players);
+          displayPredictions(players, model);
         },
         error: function (error) {
           console.error("Error parsing CSV:", error);
@@ -153,4 +47,348 @@ document.addEventListener("DOMContentLoaded", function () {
     .catch(function (error) {
       console.error("Error fetching the CSV file:", error);
     });
+
+  function displayPredictions(players, model) {
+    predictionsTableBody.innerHTML = "";
+
+    if (!model) {
+      modelInfoDiv.textContent = "The model could not be trained because there were not enough usable rows.";
+      totalErrorDiv.textContent = "N/A";
+      meanErrorDiv.textContent = "N/A";
+      return;
+    }
+
+    var totalAbsoluteError = 0;
+    var errorCount = 0;
+
+    for (var i = 0; i < players.length; i++) {
+      var player = players[i];
+      var row = document.createElement("tr");
+      var actualOBP = parseNumber(player["OBP_21"]);
+      var prediction = predictPlayerOBP(player, model);
+
+      var error = null;
+      if (prediction !== null && actualOBP !== null) {
+        error = Math.abs(prediction - actualOBP);
+        totalAbsoluteError += error;
+        errorCount++;
+      }
+
+      addTableCell(row, player["Name"] || "Unknown Player");
+      addTableCell(row, prediction === null ? "N/A" : prediction.toFixed(3));
+      addTableCell(row, actualOBP === null ? "N/A" : actualOBP.toFixed(3));
+      addTableCell(row, error === null ? "N/A" : error.toFixed(3));
+      predictionsTableBody.appendChild(row);
+    }
+
+    var meanAbsoluteError = errorCount > 0 ? totalAbsoluteError / errorCount : 0;
+
+    modelInfoDiv.textContent =
+      "Linear regression trained on " +
+      model.trainingRowCount +
+      " players using historical OBP, plate appearances, and age.";
+    totalErrorDiv.textContent = totalAbsoluteError.toFixed(3);
+    meanErrorDiv.textContent = meanAbsoluteError.toFixed(3);
+  }
+
+  function addTableCell(row, text) {
+    var cell = document.createElement("td");
+    cell.textContent = text;
+    row.appendChild(cell);
+  }
+
+  function trainLinearRegression(players) {
+    // First, collect rows with a real 2021 OBP target and enough history to
+    // make a useful training example.
+    var candidateRows = [];
+
+    for (var i = 0; i < players.length; i++) {
+      var trainingRow = buildFeatureRow(players[i]);
+      var target = parseNumber(players[i]["OBP_21"]);
+
+      if (target !== null && trainingRow.validSeasonCount >= 2 && trainingRow.age !== null) {
+        candidateRows.push({
+          features: trainingRow.features,
+          target: target,
+        });
+      }
+    }
+
+    if (candidateRows.length < featureColumns.length + 1) {
+      return null;
+    }
+
+    var imputeMeans = calculateFeatureMeans(candidateRows);
+    var filledFeatureRows = [];
+
+    for (var j = 0; j < candidateRows.length; j++) {
+      filledFeatureRows.push(fillMissingFeatures(candidateRows[j].features, imputeMeans));
+    }
+
+    var scaleInfo = calculateScaleInfo(filledFeatureRows);
+    var xMatrix = [];
+    var yValues = [];
+
+    for (var k = 0; k < candidateRows.length; k++) {
+      xMatrix.push([1].concat(standardizeFeatures(filledFeatureRows[k], scaleInfo)));
+      yValues.push(candidateRows[k].target);
+    }
+
+    // Linear regression is fit with the normal equation:
+    // coefficients = inverse(X'X) X'y.
+    // A small ridge value is added to keep the equation stable if columns are
+    // closely related or a feature has very little variation.
+    var coefficients = solveLinearRegression(xMatrix, yValues, 0.01);
+
+    return {
+      coefficients: coefficients,
+      imputeMeans: imputeMeans,
+      scaleInfo: scaleInfo,
+      trainingRowCount: candidateRows.length,
+    };
+  }
+
+  function buildFeatureRow(player) {
+    var features = [];
+    var validSeasonCount = 0;
+
+    for (var i = 0; i < featureColumns.length; i++) {
+      if (featureColumns[i] === "age_2021") {
+        var age = calculateAgeIn2021(player["birth_date"]);
+        features.push(age);
+      } else {
+        features.push(parseNumber(player[featureColumns[i]]));
+      }
+    }
+
+    for (var year = 16; year <= 20; year++) {
+      if (parseNumber(player["OBP_" + year]) !== null && parseNumber(player["PA_" + year]) !== null) {
+        validSeasonCount++;
+      }
+    }
+
+    return {
+      features: features,
+      validSeasonCount: validSeasonCount,
+      age: calculateAgeIn2021(player["birth_date"]),
+    };
+  }
+
+  function predictPlayerOBP(player, model) {
+    var featureRow = buildFeatureRow(player);
+
+    if (featureRow.validSeasonCount < 1 || featureRow.age === null) {
+      return null;
+    }
+
+    var filledFeatures = fillMissingFeatures(featureRow.features, model.imputeMeans);
+    var standardizedFeatures = standardizeFeatures(filledFeatures, model.scaleInfo);
+    var modelInputs = [1].concat(standardizedFeatures);
+    var prediction = 0;
+
+    for (var i = 0; i < model.coefficients.length; i++) {
+      prediction += model.coefficients[i] * modelInputs[i];
+    }
+
+    // OBP is a rate, so keep unusual regression outputs inside a realistic range.
+    return clamp(prediction, 0, 1);
+  }
+
+  function calculateFeatureMeans(rows) {
+    var sums = new Array(featureColumns.length).fill(0);
+    var counts = new Array(featureColumns.length).fill(0);
+
+    for (var i = 0; i < rows.length; i++) {
+      for (var j = 0; j < featureColumns.length; j++) {
+        if (rows[i].features[j] !== null) {
+          sums[j] += rows[i].features[j];
+          counts[j]++;
+        }
+      }
+    }
+
+    return sums.map(function (sum, index) {
+      return counts[index] > 0 ? sum / counts[index] : 0;
+    });
+  }
+
+  function fillMissingFeatures(features, imputeMeans) {
+    return features.map(function (value, index) {
+      return value === null ? imputeMeans[index] : value;
+    });
+  }
+
+  function calculateScaleInfo(featureRows) {
+    var means = new Array(featureColumns.length).fill(0);
+    var standardDeviations = new Array(featureColumns.length).fill(0);
+
+    for (var i = 0; i < featureRows.length; i++) {
+      for (var j = 0; j < featureColumns.length; j++) {
+        means[j] += featureRows[i][j];
+      }
+    }
+
+    for (var m = 0; m < means.length; m++) {
+      means[m] = means[m] / featureRows.length;
+    }
+
+    for (var row = 0; row < featureRows.length; row++) {
+      for (var col = 0; col < featureColumns.length; col++) {
+        standardDeviations[col] += Math.pow(featureRows[row][col] - means[col], 2);
+      }
+    }
+
+    for (var s = 0; s < standardDeviations.length; s++) {
+      standardDeviations[s] = Math.sqrt(standardDeviations[s] / featureRows.length) || 1;
+    }
+
+    return {
+      means: means,
+      standardDeviations: standardDeviations,
+    };
+  }
+
+  function standardizeFeatures(features, scaleInfo) {
+    return features.map(function (value, index) {
+      return (value - scaleInfo.means[index]) / scaleInfo.standardDeviations[index];
+    });
+  }
+
+  function solveLinearRegression(xMatrix, yValues, ridgeValue) {
+    var transposedX = transposeMatrix(xMatrix);
+    var xtx = multiplyMatrices(transposedX, xMatrix);
+    var xty = multiplyMatrixAndVector(transposedX, yValues);
+
+    for (var i = 1; i < xtx.length; i++) {
+      xtx[i][i] += ridgeValue;
+    }
+
+    return solveLinearSystem(xtx, xty);
+  }
+
+  function transposeMatrix(matrix) {
+    var transposed = [];
+
+    for (var col = 0; col < matrix[0].length; col++) {
+      transposed[col] = [];
+      for (var row = 0; row < matrix.length; row++) {
+        transposed[col][row] = matrix[row][col];
+      }
+    }
+
+    return transposed;
+  }
+
+  function multiplyMatrices(a, b) {
+    var result = [];
+
+    for (var row = 0; row < a.length; row++) {
+      result[row] = [];
+      for (var col = 0; col < b[0].length; col++) {
+        var sum = 0;
+        for (var inner = 0; inner < b.length; inner++) {
+          sum += a[row][inner] * b[inner][col];
+        }
+        result[row][col] = sum;
+      }
+    }
+
+    return result;
+  }
+
+  function multiplyMatrixAndVector(matrix, vector) {
+    var result = [];
+
+    for (var row = 0; row < matrix.length; row++) {
+      var sum = 0;
+      for (var col = 0; col < vector.length; col++) {
+        sum += matrix[row][col] * vector[col];
+      }
+      result[row] = sum;
+    }
+
+    return result;
+  }
+
+  function solveLinearSystem(matrix, vector) {
+    // Gaussian elimination with partial pivoting solves the small system used
+    // by this project without needing an external math or machine learning library.
+    var size = matrix.length;
+    var augmented = [];
+
+    for (var i = 0; i < size; i++) {
+      augmented[i] = matrix[i].slice();
+      augmented[i].push(vector[i]);
+    }
+
+    for (var col = 0; col < size; col++) {
+      var pivotRow = col;
+
+      for (var row = col + 1; row < size; row++) {
+        if (Math.abs(augmented[row][col]) > Math.abs(augmented[pivotRow][col])) {
+          pivotRow = row;
+        }
+      }
+
+      if (pivotRow !== col) {
+        var temp = augmented[col];
+        augmented[col] = augmented[pivotRow];
+        augmented[pivotRow] = temp;
+      }
+
+      var pivot = augmented[col][col];
+      if (Math.abs(pivot) < 0.000000001) {
+        pivot = 0.000000001;
+      }
+
+      for (var nextRow = col + 1; nextRow < size; nextRow++) {
+        var factor = augmented[nextRow][col] / pivot;
+
+        for (var nextCol = col; nextCol <= size; nextCol++) {
+          augmented[nextRow][nextCol] -= factor * augmented[col][nextCol];
+        }
+      }
+    }
+
+    var solution = new Array(size).fill(0);
+
+    for (var backRow = size - 1; backRow >= 0; backRow--) {
+      var sum = augmented[backRow][size];
+
+      for (var backCol = backRow + 1; backCol < size; backCol++) {
+        sum -= augmented[backRow][backCol] * solution[backCol];
+      }
+
+      solution[backRow] = sum / augmented[backRow][backRow];
+    }
+
+    return solution;
+  }
+
+  function calculateAgeIn2021(birthDateText) {
+    var birthDate = new Date(birthDateText);
+
+    if (isNaN(birthDate.getTime())) {
+      return null;
+    }
+
+    var age = 2021 - birthDate.getFullYear();
+    var birthdayPassed =
+      birthDate.getMonth() < 6 || (birthDate.getMonth() === 6 && birthDate.getDate() <= 1);
+
+    return birthdayPassed ? age : age - 1;
+  }
+
+  function parseNumber(value) {
+    if (value === null || value === undefined || value === "") {
+      return null;
+    }
+
+    var number = parseFloat(value);
+    return isNaN(number) ? null : number;
+  }
+
+  function clamp(value, minimum, maximum) {
+    return Math.max(minimum, Math.min(maximum, value));
+  }
 });
