@@ -164,19 +164,6 @@ Typical interpretation:
 - Negative `age_2021` suggests mild age-related decline pressure after scaling.
 - Regional indicators measure difference relative to the omitted `region_foreign` bucket.
 
-## Why This Project Is Different
-
-This project is useful because it demonstrates more than just "I trained a regression."
-
-It lets you discuss:
-
-- Feature partitioning and model design
-- Why scaling matters in linear algebra
-- Custom matrix math in JavaScript
-- Deterministic ensemble construction
-- One-hot encoding for categorical variables
-- How to separate storytelling constraints from pure optimization
-- The difference between explanatory experimentation and production-grade forecasting
 
 ## Limitations
 
@@ -185,6 +172,12 @@ It lets you discuss:
 - The `60/40` human-over-stats blend is a fixed business or storytelling constraint, not a learned optimum.
 - A linear model may miss non-linear relationships between age, body type, and offensive outcomes.
 - The hometown buckets are still coarse abstractions rather than a rich developmental-history feature set.
+
+
+## Screen Shot
+<img width="1401" height="666" alt="image" src="https://github.com/user-attachments/assets/834cbc6a-cd79-4ac5-90e5-a59a4305ff88" />
+
+
 
 ## How to Run
 
